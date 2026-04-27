@@ -27,4 +27,19 @@ def test_compute_var():
     ret = fdata.compute_return(df, "Close", "1D", max_lag="1D")
     # 2023-01-20時点のVaR（それ以前だけ）
     var = fdata.compute_var_at_time(ret, "2023-01-20", 0.95)
-    
+
+
+def test_compute_portfolio_var():
+    # Synthetic returns for 2 assets with fixed weights
+    data = {
+        "asset_1": [0.01, -0.02, 0.015, -0.005, 0.002],
+        "asset_2": [0.005, -0.01, 0.02, -0.01, 0.003],
+    }
+    df = pd.DataFrame(data, index=pd.date_range("2024-01-01", periods=5, freq="D"))
+    weights = [0.6, 0.4]
+
+    var = fdata.compute_portfolio_var(df, weights, confidence=0.95)
+    print(var)
+    assert isinstance(var, float)
+    assert var >= 0.0
+    assert var > 0.0

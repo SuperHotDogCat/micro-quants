@@ -21,6 +21,8 @@
 # 全データにIndexでDate, ColumnsでClose, High, Low, Open, Volumeのdataがあることを保証するdfを返すようにする
 
 import pandas as pd
+import numpy as np
+import scipy as sp
 
 def load_yfinance_data(ticker_code: str, start: str, end: str) -> pd.DataFrame:
     r"""
@@ -52,8 +54,6 @@ def load_yfinance_data(ticker_code: str, start: str, end: str) -> pd.DataFrame:
     df = yf.download(ticker_code, start=start, end=end)
     df = df.xs(ticker_code, axis=1, level=1) # ticker_codeで指定したdataを取り出す
     return df
-
-import pandas as pd
 
 def compute_return(df: pd.DataFrame, column: str, T: str, max_lag: str = None) -> pd.Series:
     r"""
@@ -150,9 +150,6 @@ def compute_return(df: pd.DataFrame, column: str, T: str, max_lag: str = None) -
 
     return ret
 
-import pandas as pd
-import numpy as np
-
 def compute_var_at_time(
     return_series: pd.Series,
     t,
@@ -191,3 +188,60 @@ def compute_var_at_time(
     var = -np.percentile(hist, (1 - confidence) * 100)
 
     return var
+
+def compute_portfolio_var(
+    return_df: pd.DataFrame,
+    weights,
+    confidence: float = 0.95,
+    window: int | None = None,
+):
+    """
+    Compute portfolio VaR parametrically using a normal approximation.
+
+    Args:
+        return_df: pd.DataFrame with DatetimeIndex and numeric asset returns in each column.
+        weights: sequence of portfolio weights matching return_df columns.
+        confidence: confidence level (e.g. 0.95 for 95% VaR).
+        window: number of most recent observations to use (None = all history).
+
+    Returns:
+        VaR as a non-negative float.
+
+    Notes:
+        Uses the formula VaR = -(mu_p + z * sigma_p), where
+        z = sqrt(2) * erfinv(2*confidence - 1).
+    """
+    if not isinstance(return_df, pd.DataFrame):
+        raise TypeError("return_df must be pandas DataFrame")
+
+    if not isinstance(return_df.index, pd.DatetimeIndex):
+        raise TypeError("return_df must have DatetimeIndex")
+
+    returns = return_df.copy()
+    weights = np.asarray(weights, dtype=float)
+
+    if returns.empty:
+        raise ValueError("return_df is empty")
+
+    if len(weights) != returns.shape[1]:
+        raise ValueError("weights length must equal number of assets")
+
+    if window is not None:
+        returns = returns.tail(window)
+
+    returns = returns.dropna(how="any")
+    if returns.empty:
+        raise ValueError("No valid return data after dropping NaNs")
+
+    mean_returns = returns.mean().to_numpy()
+    cov_matrix = returns.cov().to_numpy()
+
+    portfolio_mean = float(np.dot(weights, mean_returns))
+    portfolio_variance = float(np.dot(weights, cov_matrix.dot(weights)))
+    if portfolio_variance < 0:
+        raise ValueError("Computed portfolio variance is negative")
+
+    portfolio_std = np.sqrt(portfolio_variance)
+    z_score = np.sqrt(2.0) * sp.special.erfinv(2.0 * confidence - 1.0) # Inverse CDF of standard distributions
+    var = z_score * portfolio_std - portfolio_mean # Var = Upper 95% point
+    return float(max(0.0, var))
