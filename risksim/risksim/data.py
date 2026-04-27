@@ -23,6 +23,7 @@
 import pandas as pd
 import numpy as np
 import scipy as sp
+import matplotlib.pyplot as plt
 
 def load_yfinance_data(ticker_code: str, start: str, end: str) -> pd.DataFrame:
     r"""
@@ -186,10 +187,65 @@ def compute_var_at_time(
 
     # --- VaR ---
     var = -np.percentile(hist, (1 - confidence) * 100)
-
     return var
 
-def compute_portfolio_var(
+def plot_return_dist(
+    df: pd.Series,
+    savename: str = "output.png",
+    bins: int = 50,
+    ticker_symbol: str = "",
+    confidence: float | None = None,  # ← 追加
+):
+    data = df.dropna().values
+
+    # 日付範囲
+    from_date = df.index.min()
+    to_date = df.index.max()
+
+    # 平均と標準偏差
+    mu = np.mean(data)
+    sigma = np.std(data)
+
+    # ヒストグラム
+    plt.hist(data, bins=bins, density=True, alpha=0.6, label="Empirical")
+
+    # 正規分布
+    x = np.linspace(data.min(), data.max(), 1000)
+    pdf = sp.stats.norm.pdf(x, mu, sigma)
+    plt.plot(x, pdf, label=f"Normal (μ={mu:.4f}, σ={sigma:.4f})")
+
+    # --- VaR 可視化 ---
+    if confidence is not None:
+        q = (1 - confidence) * 100
+        var_threshold = np.percentile(data, q)  # 負の値になるはず
+        var_value = -var_threshold              # VaR（正）
+
+        # 縦線
+        plt.axvline(var_threshold, linestyle="--",
+                    label=f"VaR {int(confidence*100)}% = {var_value:.4f}")
+
+        # 横軸に値表示（ちょい下にテキスト）
+        plt.text(
+            var_threshold,
+            plt.ylim()[1] * 0.8,
+            f"{var_threshold:.4f}",
+            rotation=90,
+            verticalalignment="center"
+        )
+
+    plt.legend()
+
+    if ticker_symbol:
+        plt.title(f"{ticker_symbol}: {from_date.date()} - {to_date.date()}")
+    else:
+        plt.title(f"{from_date.date()} - {to_date.date()}")
+
+    plt.xlabel("Return")
+    plt.ylabel("Density")
+    plt.savefig(savename)
+    plt.close()
+
+def compute_portfolio_var_at_time(
     return_df: pd.DataFrame,
     weights,
     confidence: float = 0.95,

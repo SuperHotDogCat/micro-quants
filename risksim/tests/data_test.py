@@ -2,7 +2,7 @@ import pandas as pd
 import risksim.data as fdata # finance data
 
 def test_load_yfinance_data():
-    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2023-02-01")
+    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2026-02-01")
     print(df)
     print(df.index)
     print(type(df.index))
@@ -11,7 +11,7 @@ def test_load_yfinance_data():
     assert not df.empty
 
 def test_compute_return():
-    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2023-02-01")
+    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2026-02-01")
     ret = fdata.compute_return(df, "Close", "1D", max_lag="1D")
     # インデックスをSeriesに
     idx = ret.index.to_series()
@@ -23,11 +23,15 @@ def test_compute_return():
     assert has_prev.all(), "Return includes entries without exact 1D previous data"
 
 def test_compute_var():
-    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2023-02-01")
+    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2026-02-01")
     ret = fdata.compute_return(df, "Close", "1D", max_lag="1D")
-    # 2023-01-20時点のVaR（それ以前だけ）
-    var = fdata.compute_var_at_time(ret, "2023-01-20", 0.95)
+    var = fdata.compute_var_at_time(ret, "2026-02-01", 0.95)
+    print(var)
 
+def test_plot_return_dist():
+    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2026-02-01")
+    ret = fdata.compute_return(df, "Close", "1D", max_lag="1D")
+    fdata.plot_return_dist(ret, confidence=0.95, ticker_symbol="AAPL")
 
 def test_compute_portfolio_var():
     # Synthetic returns for 2 assets with fixed weights
@@ -38,7 +42,7 @@ def test_compute_portfolio_var():
     df = pd.DataFrame(data, index=pd.date_range("2024-01-01", periods=5, freq="D"))
     weights = [0.6, 0.4]
 
-    var = fdata.compute_portfolio_var(df, weights, confidence=0.95)
+    var = fdata.compute_portfolio_var_at_time(df, weights, confidence=0.95)
     print(var)
     assert isinstance(var, float)
     assert var >= 0.0
