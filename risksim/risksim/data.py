@@ -142,7 +142,7 @@ def compute_return(df: pd.DataFrame, column: str, T: str, max_lag: str = None) -
     else:
         mask = pd.Series(True, index=df.index)
 
-    # --- リターン ---
+    # --- リターン率 ---
     ret = df[column] / past_price.values - 1
     ret = pd.Series(ret, index=df.index)
     # Filtering

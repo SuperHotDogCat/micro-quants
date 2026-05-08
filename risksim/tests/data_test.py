@@ -11,7 +11,14 @@ def test_load_yfinance_data():
     assert not df.empty
 
 def test_compute_return():
-    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2026-02-01")
+    # 固定データ
+    df = pd.DataFrame({
+        "Close": [100, 101, 102],
+        "High": [100, 101, 102],
+        "Low": [100, 101, 102],
+        "Open": [100, 101, 102],
+        "Volume": [100, 101, 102]
+    }, index=pd.date_range("2023-01-01", periods=3, freq="D"))
     ret = fdata.compute_return(df, "Close", "1D", max_lag="1D")
     # インデックスをSeriesに
     idx = ret.index.to_series()
@@ -23,13 +30,27 @@ def test_compute_return():
     assert has_prev.all(), "Return includes entries without exact 1D previous data"
 
 def test_compute_var():
-    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2026-02-01")
+    # 固定データ
+    df = pd.DataFrame({
+        "Close": [100, 101, 102],
+        "High": [100, 101, 102],
+        "Low": [100, 101, 102],
+        "Open": [100, 101, 102],
+        "Volume": [100, 101, 102]
+    }, index=pd.date_range("2023-01-01", periods=3, freq="D"))
     ret = fdata.compute_return(df, "Close", "1D", max_lag="1D")
     var = fdata.compute_var_at_time(ret, "2026-02-01", 0.95)
     print(var)
 
 def test_plot_return_dist():
-    df = fdata.load_yfinance_data("AAPL", "2023-01-01", "2026-02-01")
+    # 固定データ
+    df = pd.DataFrame({
+        "Close": [100, 101, 102],
+        "High": [100, 101, 102],
+        "Low": [100, 101, 102],
+        "Open": [100, 101, 102],
+        "Volume": [100, 101, 102]
+    }, index=pd.date_range("2023-01-01", periods=3, freq="D"))
     ret = fdata.compute_return(df, "Close", "1D", max_lag="1D")
     fdata.plot_return_dist(ret, confidence=0.95, ticker_symbol="AAPL")
 
