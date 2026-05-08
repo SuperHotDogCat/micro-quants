@@ -50,9 +50,15 @@ def load_yfinance_data(ticker_code: str, start: str, end: str) -> pd.DataFrame:
         raise TypeError("end must be str (YYYY-MM-DD)")
 
     import yfinance as yf
+    import concurrent.futures
 
-    # データ取得
-    df = yf.download(ticker_code, start=start, end=end)
+    def fetch_finance_data():
+        return yf.download(ticker_code, start=start, end=end)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(fetch_finance_data)
+        df = future.result(timeout=10) # 10秒でtime out
+
     df = df.xs(ticker_code, axis=1, level=1) # ticker_codeで指定したdataを取り出す
     return df
 
