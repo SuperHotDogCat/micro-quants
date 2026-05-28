@@ -32,7 +32,7 @@ def fetch_market_data(
         start=start,
         end=end,
         interval="1d",
-        auto_adjust=True,
+        auto_adjust=True, # splitなどの影響を考えて調整する
         group_by="column",
         threads=True,
     )

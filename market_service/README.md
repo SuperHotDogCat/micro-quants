@@ -24,7 +24,7 @@ uv run uvicorn main:app --reload
 # Example Request
 
 ```http
-GET /snapshot?symbols=SPY&symbols=QQQ&symbols=NVDA
+GET /snapshot?symbols=SPY&symbols=QQQ&symbols=VT
 ```
 
 Fetch historical market data for:
