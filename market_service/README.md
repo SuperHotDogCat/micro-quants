@@ -4,6 +4,11 @@
 
 Fetch historical market data for one or more ticker symbols.
 
+# Run Server
+
+```bash
+uv run uvicorn main:app --reload
+```
 ---
 
 # Query Parameters

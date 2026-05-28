@@ -1,8 +1,11 @@
+import time
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
 import yfinance as yf
 
 app = FastAPI()
+cache = {} # (symbols, start, end)がkey
+CACHE_TTL = 3 # TTL
 
 class HistoricalItem(BaseModel):
     date: str
@@ -39,18 +42,8 @@ def fetch_market_data(
     for symbol in symbols:
 
         historical: list[HistoricalItem] = []
-
-        # single symbol の場合と
-        # multi symbol の場合で column 構造が違うので吸収
-        if len(symbols) == 1:
-
-            close_series = df["Close"].dropna()
-            volume_series = df["Volume"].dropna()
-
-        else:
-
-            close_series = df["Close"][symbol].dropna()
-            volume_series = df["Volume"][symbol].dropna()
+        close_series = df["Close"][symbol].dropna()
+        volume_series = df["Volume"][symbol].dropna()
 
         for idx in close_series.index:
 
@@ -81,6 +74,17 @@ def snapshot(
     start: str = "2024-01-01",
     end: str = "2025-01-01",
 ):
+    # cache key 
+    cache_key = ( tuple(sorted(symbols)), start, end, )
+    now = time.time()
+
+    if cache_key in cache: 
+        cached = cache[cache_key] 
+        age = now - cached["timestamp"]
+        if age < CACHE_TTL:
+            return cached["data"]
+        else:
+            del cache[cache_key]
 
     market_data = fetch_market_data(
         symbols=symbols,
@@ -88,9 +92,13 @@ def snapshot(
         end=end,
     )
 
-    return SnapshotResponse(
+    response = SnapshotResponse(
         symbols=symbols,
         start=start,
         end=end,
         market_data=market_data,
     )
+    # cache
+    cache[cache_key] = { "timestamp": now, "data": response}
+
+    return response
